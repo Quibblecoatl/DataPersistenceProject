@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -5,8 +6,23 @@ namespace UIScripts
 {
     public class MenuUIHandler : MonoBehaviour
     {
-
+        [SerializeField] private MainMenuHandler mainMenu;
+        [SerializeField] private GameObject nameInputMenu;
+        
         public float duration;
+
+        private void Start()
+        {
+            if (PlayerManager.Instance.activePlayer != "")
+            {
+                mainMenu.gameObject.SetActive(true);
+            }
+            else
+            {
+                nameInputMenu.gameObject.SetActive(true);
+            }
+        }
+
         public void ChangeMenu(GameObject menuToDisable, GameObject menuToEnable)
         {
             StartCoroutine(SetFade(menuToDisable, 1, 0, menuToEnable));

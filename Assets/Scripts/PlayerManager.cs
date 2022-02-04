@@ -9,7 +9,6 @@ public class PlayerManager : MonoBehaviour
     public static PlayerManager Instance;
     [HideInInspector] public string activePlayer;
     [HideInInspector] public int bestScore = 0;
-    public Dictionary<string, int> HighScoreDictionary;
     [HideInInspector] public PlayerList highScoreList;
 
     private void Awake()
@@ -22,7 +21,6 @@ public class PlayerManager : MonoBehaviour
         }
 
         highScoreList.playerList = new List<PlayerData>();
-        HighScoreDictionary = new Dictionary<string, int>();
         Instance = this;
         DontDestroyOnLoad(gameObject);
         LoadData();
@@ -50,60 +48,60 @@ public class PlayerManager : MonoBehaviour
     public void setPlayerData(string player)
     {
         activePlayer = player;
-        if (HighScoreDictionary.ContainsKey(activePlayer))
+        var playerData = findPlayerInList();
+        
+        if (playerData != null)
         {
-            bestScore = HighScoreDictionary[player];
+            bestScore = playerData.Value.highScore;
         }
         else
         {
+            bestScore = 0;
             SaveData();
         }
+    }
+
+    public PlayerData? findPlayerInList()
+    {
+        foreach (var player in highScoreList.playerList.Where(player => player.playerName == activePlayer))
+        {
+            return player;
+        }
+        return null;
+    }
+
+    public List<PlayerData> giveOrderedByScore()
+    {
+        return highScoreList.playerList.OrderByDescending(player => player.highScore).ToList();
     }
 
     public void SaveData()
     {
         string path = Application.persistentDataPath + "/savefile.json";
-        
-        // If our Player doesn't exist in the dictionary, add them.
-        if (!HighScoreDictionary.ContainsKey(activePlayer))
+
+        var player = findPlayerInList();
+
+        if (player != null)
         {
-            HighScoreDictionary.Add(activePlayer, bestScore);
-        }
-        else
-        {
-            // If our best score is better than our stored score, update it
-            if (HighScoreDictionary[activePlayer] < bestScore)
+            if (bestScore > player.Value.highScore)
             {
-                HighScoreDictionary[activePlayer] = bestScore;
+                highScoreList.playerList.Remove(player.Value);
             }
-            // If our player exists and their score is lower then their best, there is no point in saving, return
             else
             {
                 return;
             }
         }
-        
-        PlayerList tempList = new PlayerList();
-        tempList.playerList = new List<PlayerData>();
-        
-        foreach (KeyValuePair<string, int> keyValuePair in HighScoreDictionary)
-        {
-            PlayerData player = new PlayerData(keyValuePair.Key, keyValuePair.Value);
-            tempList.playerList.Add(player);
-        }
 
-        string json = JsonUtility.ToJson(tempList);
-        
-        Debug.Log(json);
-        
+        PlayerData newPlayerEntry = new PlayerData(activePlayer, bestScore);
+        highScoreList.playerList.Add(newPlayerEntry);
+
+
+        string json = JsonUtility.ToJson(highScoreList);
+
         File.WriteAllText(path, json);
     }
 
-    public void loadBestScore()
-    {
-        bestScore = HighScoreDictionary[activePlayer];
-    }
-    
     public void LoadData()
     {
         string path = Application.persistentDataPath + "/savefile.json";
@@ -115,16 +113,6 @@ public class PlayerManager : MonoBehaviour
             PlayerList datalist = JsonUtility.FromJson<PlayerList>(json);
 
             highScoreList = datalist;
-
-            foreach (var item in datalist.playerList.Where(item => !HighScoreDictionary.ContainsKey(item.playerName)))
-            {
-                HighScoreDictionary.Add(item.playerName, item.highScore);
-            }
-            
-            if (HighScoreDictionary.ContainsKey(activePlayer))
-            {
-                loadBestScore();
-            }
         }
     }
 }

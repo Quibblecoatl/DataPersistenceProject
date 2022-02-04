@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -11,17 +12,34 @@ public class MainManager : MonoBehaviour
     public Rigidbody Ball;
 
     public Text ScoreText;
+    [SerializeField] private Text TopScore;
+    [SerializeField] private Text PersonalBest;
+    [SerializeField] private Image BlackOutPanel;
     public GameObject GameOverText;
     
     private bool m_Started = false;
     private int m_Points;
     
     private bool m_GameOver = false;
+    private float blackOutDuration = 2f;
 
     
     // Start is called before the first frame update
     void Start()
     {
+        if (PlayerManager.Instance != null)
+        {
+            var topPlayers = PlayerManager.Instance.giveOrderedByScore();
+        
+            if (topPlayers.Count > 0)
+            {
+                TopScore.text = "Best Score: " + topPlayers[0].playerName + " : " + topPlayers[0].highScore;
+            }
+
+            PersonalBest.text = "Personal Best: " + PlayerManager.Instance.activePlayer + " : " +
+                                PlayerManager.Instance.bestScore;
+        }
+
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -72,5 +90,28 @@ public class MainManager : MonoBehaviour
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+        StartCoroutine(BlackOutFadeIn());
+        if (PlayerManager.Instance == null) { return; }
+        if (PlayerManager.Instance.bestScore >= m_Points) return;
+        
+        PlayerManager.Instance.bestScore = m_Points;
+        PlayerManager.Instance.SaveData();
     }
+
+    private IEnumerator BlackOutFadeIn()
+    {
+        var time = 0f;
+
+        while (time < blackOutDuration)
+        {
+            time += Time.deltaTime;
+            var tempColor = BlackOutPanel.color;
+            tempColor.a = Mathf.MoveTowards(0, 1, time / blackOutDuration);
+            BlackOutPanel.color = tempColor;
+            yield return null;
+        }
+
+        SceneManager.LoadScene(2);
+    }
+    
 }
