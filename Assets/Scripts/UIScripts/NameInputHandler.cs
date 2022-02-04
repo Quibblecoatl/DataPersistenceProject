@@ -55,7 +55,8 @@ namespace UIScripts
                 errorText.StartFadeInFadeOut();
                 return;
             }
-            PlayerManager.Instance.activePlayer = nameInput.text;
+
+            PlayerManager.Instance.setPlayerData(nameInput.text);
             uiHandler.ChangeMenu(gameObject, StartMenu);
         }
     }
